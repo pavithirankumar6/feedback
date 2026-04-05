@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../services/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { getFacultyForms } from '../../services/firebaseData.js';
 import { Plus, BarChart3, Edit3, Users, Calendar, Clock, ChevronRight, AlertCircle, Loader2, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'motion/react';
@@ -9,12 +10,14 @@ const FacultyDashboard = () => {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchForms = async () => {
+      if (!user) return;
       try {
-        const response = await api.get('/forms/faculty');
-        setForms(response.data);
+        const response = await getFacultyForms(user);
+        setForms(response);
       } catch (err) {
         setError('Failed to load your forms. Please try again later.');
       } finally {
@@ -22,7 +25,7 @@ const FacultyDashboard = () => {
       }
     };
     fetchForms();
-  }, []);
+  }, [user]);
 
   const getStatus = (deadline) => {
     const isClosed = new Date(deadline) < new Date();
@@ -101,7 +104,7 @@ const FacultyDashboard = () => {
       <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between">
           <h2 className="font-bold text-neutral-900">Recent Forms</h2>
-          <Link to="/forms" className="text-sm text-indigo-600 font-semibold hover:underline">View All</Link>
+          <Link to="/" className="text-sm text-indigo-600 font-semibold hover:underline">Refresh</Link>
         </div>
         
         {forms.length === 0 ? (
@@ -149,7 +152,7 @@ const FacultyDashboard = () => {
                       <BarChart3 className="h-5 w-5" />
                     </Link>
                     <Link
-                      to={`/forms/${form.id}/edit`}
+                      to={`/forms/${form.id}/manage`}
                       className="p-2 text-neutral-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
                       title="Edit Form"
                     >

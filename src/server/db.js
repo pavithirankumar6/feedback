@@ -1,6 +1,14 @@
 import Database from 'better-sqlite3';
+import fs from 'fs';
+import path from 'path';
 
-const db = new Database('feedback_system.db');
+const databasePath = process.env.DATABASE_PATH
+  ? path.resolve(process.env.DATABASE_PATH)
+  : path.resolve('feedback_system.db');
+
+fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+
+const db = new Database(databasePath);
 
 // Enable foreign keys
 db.pragma('foreign_keys = ON');

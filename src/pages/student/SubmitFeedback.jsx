@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../services/api.js';
-import { ArrowLeft, Save, AlertCircle, Loader2, Star, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { getFormDetails, submitFeedback } from '../../services/firebaseData.js';
+import { ArrowLeft, Save, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -20,40 +21,41 @@ const SubmitFeedback = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchForm = async () => {
+      if (!user) return;
       try {
-        const response = await api.get(`/forms/${id}`);
-        setForm(response.data.form);
-        setQuestions(response.data.questions);
+        const response = await getFormDetails(id, user);
+        setForm(response.form);
+        setQuestions(response.questions);
         
-        // Initialize answers
         const initialAnswers = {};
-        response.data.questions.forEach((q) => {
+        response.questions.forEach((q) => {
           initialAnswers[q.id] = q.type === 'rating' ? { rating_value: 0 } : { answer_text: '' };
         });
         setAnswers(initialAnswers);
       } catch (err) {
-        setError('Failed to load form details.');
+        setError(err.message || 'Failed to load form details.');
       } finally {
         setLoading(false);
       }
     };
     fetchForm();
-  }, [id]);
+  }, [id, user]);
 
   const handleRatingChange = (questionId, rating) => {
     setAnswers({
       ...answers,
-      [questionId]: { ...answers[questionId], rating_value: rating }
+      [questionId]: { ...(answers[questionId] || {}), rating_value: rating }
     });
   };
 
   const handleTextChange = (questionId, text) => {
     setAnswers({
       ...answers,
-      [questionId]: { ...answers[questionId], answer_text: text }
+      [questionId]: { ...(answers[questionId] || {}), answer_text: text }
     });
   };
 
@@ -72,19 +74,18 @@ const SubmitFeedback = () => {
 
     try {
       const formattedAnswers = Object.keys(answers).map((qId) => {
-        const id = parseInt(qId);
-        const val = answers[id];
+        const val = answers[qId];
         return {
-          question_id: id,
+          question_id: qId,
           rating_value: val.rating_value,
           answer_text: val.answer_text
         };
       });
-      await api.post(`/forms/${id}/submit`, { answers: formattedAnswers });
+      await submitFeedback(id, formattedAnswers, user);
       setSuccess(true);
       setTimeout(() => navigate('/'), 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit feedback.');
+      setError(err.message || 'Failed to submit feedback.');
     } finally {
       setSubmitting(false);
     }

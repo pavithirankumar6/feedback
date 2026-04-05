@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api from '../services/api.js';
+import { useAuth } from '../context/AuthContext.jsx';
 import { UserPlus, Mail, Lock, User as UserIcon, GraduationCap, School, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { clsx } from 'clsx';
@@ -20,6 +20,7 @@ const Register = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,10 +28,10 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await api.post('/auth/register', formData);
-      navigate('/login', { state: { message: 'Registration successful! Please login.' } });
+      await register(formData);
+      navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

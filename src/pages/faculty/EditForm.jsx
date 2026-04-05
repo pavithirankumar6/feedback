@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../services/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { getFacultyFormAnalysis, updateFeedbackForm } from '../../services/firebaseData.js';
 import { Plus, Trash2, Save, ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -15,12 +16,14 @@ const EditForm = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchForm = async () => {
+      if (!user) return;
       try {
-        const response = await api.get(`/forms/${id}/analysis`);
-        const { form, questions } = response.data;
+        const response = await getFacultyFormAnalysis(id, user);
+        const { form, questions } = response;
         setTitle(form.title);
         setDescription(form.description || '');
         const date = new Date(form.deadline);
@@ -39,7 +42,7 @@ const EditForm = () => {
       }
     };
     fetchForm();
-  }, [id]);
+  }, [id, user]);
 
   const addQuestion = () => {
     setQuestions([...questions, { question_text: '', type: 'rating' }]);
@@ -69,16 +72,16 @@ const EditForm = () => {
     setError('');
 
     try {
-      await api.put(`/forms/${id}`, {
+      await updateFeedbackForm(id, {
         title,
         description,
         deadline,
         allow_edit_response: allowEdit,
         questions
-      });
+      }, user);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update form. Please try again.');
+      setError(err.message || 'Failed to update form. Please try again.');
     } finally {
       setSaving(false);
     }

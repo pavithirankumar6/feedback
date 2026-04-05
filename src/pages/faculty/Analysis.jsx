@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import api from '../../services/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { getFacultyFormAnalysis } from '../../services/firebaseData.js';
 import { BarChart3, Users, Calendar, ArrowLeft, Loader2, AlertCircle, MessageSquare, Star, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'motion/react';
@@ -11,12 +12,14 @@ const Analysis = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchAnalysis = async () => {
+      if (!user) return;
       try {
-        const response = await api.get(`/forms/${id}/analysis`);
-        setData(response.data);
+        const response = await getFacultyFormAnalysis(id, user);
+        setData(response);
       } catch (err) {
         setError('Failed to load analysis data.');
       } finally {
@@ -24,7 +27,7 @@ const Analysis = () => {
       }
     };
     fetchAnalysis();
-  }, [id]);
+  }, [id, user]);
 
   if (loading) {
     return (

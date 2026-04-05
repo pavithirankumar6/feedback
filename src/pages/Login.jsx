@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import api from '../services/api.js';
 import { LogIn, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -19,11 +18,10 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/login', { email, password });
-      login(response.data.token, response.data.user);
+      await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }

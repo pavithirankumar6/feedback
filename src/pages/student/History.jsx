@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import api from '../../services/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { getStudentHistory } from '../../services/firebaseData.js';
 import { ClipboardList, ChevronRight, AlertCircle, Loader2, Calendar, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'motion/react';
@@ -9,12 +10,14 @@ const History = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchHistory = async () => {
+      if (!user) return;
       try {
-        const response = await api.get('/student/history');
-        setHistory(response.data);
+        const response = await getStudentHistory(user);
+        setHistory(response);
       } catch (err) {
         setError('Failed to load your history.');
       } finally {
@@ -22,7 +25,7 @@ const History = () => {
       }
     };
     fetchHistory();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
@@ -79,7 +82,7 @@ const History = () => {
                 <div className="flex items-center gap-4">
                   {item.allow_edit_response && new Date(item.deadline) > new Date() ? (
                     <Link
-                      to={`/forms/${item.form_id}/edit`}
+                      to={`/responses/${item.form_id}/edit`}
                       className="px-4 py-2 bg-indigo-50 text-indigo-600 font-bold rounded-xl hover:bg-indigo-100 transition-all text-sm"
                     >
                       Edit Response

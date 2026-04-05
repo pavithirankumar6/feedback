@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { createFeedbackForm } from '../../services/firebaseData.js';
 import { Plus, Trash2, Save, ArrowLeft, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -15,6 +16,7 @@ const CreateForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const addQuestion = () => {
     setQuestions([...questions, { question_text: '', type: 'rating' }]);
@@ -44,16 +46,16 @@ const CreateForm = () => {
     setError('');
 
     try {
-      await api.post('/forms', {
+      await createFeedbackForm({
         title,
         description,
         deadline,
         allow_edit_response: allowEdit,
         questions
-      });
+      }, user);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create form. Please try again.');
+      setError(err.message || 'Failed to create form. Please try again.');
     } finally {
       setLoading(false);
     }

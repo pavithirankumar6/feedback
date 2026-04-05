@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../services/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { getAvailableForms, getStudentHistory } from '../../services/firebaseData.js';
 import { ClipboardList, CheckCircle2, Clock, ChevronRight, AlertCircle, Loader2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { motion } from 'motion/react';
@@ -10,16 +11,18 @@ const StudentDashboard = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!user) return;
       try {
         const [availableRes, historyRes] = await Promise.all([
-          api.get('/forms/available'),
-          api.get('/student/history')
+          getAvailableForms(user),
+          getStudentHistory(user)
         ]);
-        setAvailableForms(availableRes.data);
-        setHistory(historyRes.data);
+        setAvailableForms(availableRes);
+        setHistory(historyRes);
       } catch (err) {
         setError('Failed to load dashboard data.');
       } finally {
@@ -27,7 +30,7 @@ const StudentDashboard = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
@@ -128,7 +131,7 @@ const StudentDashboard = () => {
                   <div className="flex items-center gap-3">
                     {item.allow_edit_response && new Date(item.deadline) > new Date() && (
                       <Link
-                        to={`/forms/${item.form_id}/edit`}
+                        to={`/responses/${item.form_id}/edit`}
                         className="text-sm font-bold text-indigo-600 hover:underline"
                       >
                         Edit Response

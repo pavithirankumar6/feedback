@@ -1,43 +1,57 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api.js';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import {
+  loginWithFirebase,
+  logoutFromFirebase,
+  onFirebaseAuthChange,
+  registerWithFirebase,
+} from '../services/firebaseData.js';
 
 const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      if (token) {
-        try {
-          const response = await api.get('/auth/me');
-          setUser(response.data);
-        } catch (error) {
-          console.error('Auth initialization failed', error);
-          logout();
-        }
-      }
-      setLoading(false);
-    };
-    initAuth();
-  }, [token]);
+    let isMounted = true;
+    let unsubscribe = () => {};
 
-  const login = (newToken, newUser) => {
-    localStorage.setItem('token', newToken);
-    setToken(newToken);
-    setUser(newUser);
+    try {
+      unsubscribe = onFirebaseAuthChange((nextUser) => {
+        if (!isMounted) return;
+        setUser(nextUser);
+        setLoading(false);
+      });
+    } catch (error) {
+      console.error('Firebase auth initialization failed', error);
+      setLoading(false);
+    }
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  const login = async (email, password) => {
+    const nextUser = await loginWithFirebase(email, password);
+    setUser(nextUser);
+    return nextUser;
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
+  const register = async (payload) => {
+    const nextUser = await registerWithFirebase(payload);
+    setUser(nextUser);
+    return nextUser;
+  };
+
+  const logout = async () => {
+    await logoutFromFirebase();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, register, loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../services/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { editFeedback, getFormDetails } from '../../services/firebaseData.js';
 import { ArrowLeft, Save, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { clsx } from 'clsx';
@@ -20,12 +21,14 @@ const EditFeedback = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchForm = async () => {
+      if (!user) return;
       try {
-        const response = await api.get(`/forms/${id}`);
-        const { form, questions, answers: existingAnswers } = response.data;
+        const response = await getFormDetails(id, user);
+        const { form, questions, answers: existingAnswers } = response;
         
         if (!form.allow_edit_response) {
           navigate('/');
@@ -35,8 +38,12 @@ const EditFeedback = () => {
         setForm(form);
         setQuestions(questions);
         
-        // Map existing answers
         const initialAnswers = {};
+        questions.forEach((question) => {
+          initialAnswers[question.id] = question.type === 'rating'
+            ? { rating_value: 0, answer_text: '' }
+            : { answer_text: '', rating_value: null };
+        });
         existingAnswers.forEach((a) => {
           initialAnswers[a.question_id] = { 
             rating_value: a.rating_value, 
@@ -45,25 +52,25 @@ const EditFeedback = () => {
         });
         setAnswers(initialAnswers);
       } catch (err) {
-        setError('Failed to load feedback details.');
+        setError(err.message || 'Failed to load feedback details.');
       } finally {
         setLoading(false);
       }
     };
     fetchForm();
-  }, [id, navigate]);
+  }, [id, navigate, user]);
 
   const handleRatingChange = (questionId, rating) => {
     setAnswers({
       ...answers,
-      [questionId]: { ...answers[questionId], rating_value: rating }
+      [questionId]: { ...(answers[questionId] || {}), rating_value: rating }
     });
   };
 
   const handleTextChange = (questionId, text) => {
     setAnswers({
       ...answers,
-      [questionId]: { ...answers[questionId], answer_text: text }
+      [questionId]: { ...(answers[questionId] || {}), answer_text: text }
     });
   };
 
@@ -74,19 +81,18 @@ const EditFeedback = () => {
 
     try {
       const formattedAnswers = Object.keys(answers).map((qId) => {
-        const id = parseInt(qId);
-        const val = answers[id];
+        const val = answers[qId];
         return {
-          question_id: id,
+          question_id: qId,
           rating_value: val.rating_value,
           answer_text: val.answer_text
         };
       });
-      await api.put(`/forms/${id}/edit`, { answers: formattedAnswers });
+      await editFeedback(id, formattedAnswers, user);
       setSuccess(true);
       setTimeout(() => navigate('/'), 2000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update feedback.');
+      setError(err.message || 'Failed to update feedback.');
     } finally {
       setSaving(false);
     }

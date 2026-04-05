@@ -41,14 +41,14 @@ export default function App() {
               {/* Faculty Routes */}
               <Route element={<ProtectedRoute role="faculty" />}>
                 <Route path="/forms/new" element={<CreateForm />} />
-                <Route path="/forms/:id/edit" element={<EditForm />} />
+                <Route path="/forms/:id/manage" element={<EditForm />} />
                 <Route path="/forms/:id/analysis" element={<Analysis />} />
               </Route>
 
               {/* Student Routes */}
               <Route element={<ProtectedRoute role="student" />}>
                 <Route path="/forms/:id/submit" element={<SubmitFeedback />} />
-                <Route path="/forms/:id/edit" element={<EditFeedback />} />
+                <Route path="/responses/:id/edit" element={<EditFeedback />} />
                 <Route path="/history" element={<History />} />
               </Route>
             </Route>
