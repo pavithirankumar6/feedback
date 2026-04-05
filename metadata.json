@@ -1,0 +1,5 @@
+{
+  "name": "Student Feedback Analysis System",
+  "description": "A comprehensive platform for faculty to create feedback forms and analyze student responses with detailed statistics and role-based access control.",
+  "requestFramePermissions": []
+}
