@@ -263,7 +263,13 @@ export async function getFacultyFormAnalysis(formId, currentUser) {
     throw new Error('You are not allowed to view this form');
   }
 
-  const responsesSnap = await getDocs(query(collection(db, RESPONSES_COLLECTION), where('formId', '==', formId)));
+  const responsesSnap = await getDocs(
+    query(
+      collection(db, RESPONSES_COLLECTION),
+      where('facultyId', '==', currentUser.id),
+      where('formId', '==', formId)
+    )
+  );
   const responses = responsesSnap.docs.map((responseDoc) => mapResponse(responseDoc.id, responseDoc.data()));
 
   const questions = form.questions.map((question) => {
@@ -317,9 +323,16 @@ export async function getFormDetails(formId, currentUser) {
   }
 
   const form = mapForm(formSnap.id, formSnap.data());
-  const responseId = currentUser ? buildResponseDocId(formId, currentUser.id) : null;
-  const responseSnap = responseId ? await getDoc(doc(db, RESPONSES_COLLECTION, responseId)) : null;
-  const response = responseSnap?.exists() ? mapResponse(responseSnap.id, responseSnap.data()) : null;
+  let response = null;
+
+  if (currentUser) {
+    const responsesSnap = await getDocs(
+      query(collection(db, RESPONSES_COLLECTION), where('studentId', '==', currentUser.id))
+    );
+
+    const matchingResponse = responsesSnap.docs.find((responseDoc) => responseDoc.data().formId === formId);
+    response = matchingResponse ? mapResponse(matchingResponse.id, matchingResponse.data()) : null;
+  }
 
   return {
     form,
